@@ -326,6 +326,8 @@ def decode_bytes(
     }
     group_data |= guild
     guild = {
+        "unknown_field_1": reader.i64(),
+        "unknown_field_2": reader.i64(),
         "admin_player_uid": reader.guid(),
         "players": [],
     }
@@ -381,6 +383,8 @@ def encode_bytes(p: dict[str, Any]) -> bytes:
     writer.i32(p["base_camp_level"])
     writer.tarray(uuid_writer, p["map_object_instance_ids_base_camp_points"])
     writer.fstring(p["guild_name"])
+    writer.i64(p["unknown_field_1"])
+    writer.i64(p["unknown_field_2"])
     writer.guid(p["admin_player_uid"])
     writer.i32(len(p["players"]))
     for i in range(len(p["players"])):
@@ -602,15 +606,17 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         if count >= expected_containers:
             print("Found all target containers")
             break
-    dynamic_guids.remove(b'\x00' * 16)
-
+    if b'\x00' * 16 in dynamic_guids:
+        dynamic_guids.remove(b'\x00' * 16)
     dynamic_container_level_json = level_json['DynamicItemSaveData']['value']['values']
     level_additional_dynamic_containers = []
     for dynamic_container in dynamic_container_level_json:
-        LocalIdInCreatedWorld = find_id_match_prefix(dynamic_container['ID']['value'], LocalIdSearchPrefix)
-        if LocalIdInCreatedWorld in dynamic_guids:
-            level_additional_dynamic_containers.append((dynamic_container, LocalIdInCreatedWorld))
-
+        try:
+            LocalIdInCreatedWorld = find_id_match_prefix(dynamic_container['ID']['value'], LocalIdSearchPrefix)
+            if LocalIdInCreatedWorld in dynamic_guids:
+                level_additional_dynamic_containers.append((dynamic_container, LocalIdInCreatedWorld))
+        except KeyError:
+            continue
     if count < expected_containers:
         print("Missing container info! Only found " + str(count))
         messagebox.showerror(message="Missing container info! Only found " + str(count))
@@ -854,13 +860,14 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     target_dynamic_containers = targ_lvl['DynamicItemSaveData']['value']['values']
     repeated_indices = set()
     for i, target_dynamic_container in enumerate(target_dynamic_containers):
-        target_guid = find_id_match_prefix(target_dynamic_container['ID']['value'], LocalIdSearchPrefix)
-        if target_guid in dynamic_guids:
-            for j, (dynamic_container, container_local_id) in enumerate(level_additional_dynamic_containers):
-                if target_guid == container_local_id:
-                    target_dynamic_containers[i] = dynamic_container
-                    repeated_indices.add(j)
-                    break
+        if 'ID' in target_dynamic_container and 'value' in target_dynamic_container['ID']:
+            target_guid = find_id_match_prefix(target_dynamic_container['ID']['value'], LocalIdSearchPrefix)
+            if target_guid in dynamic_guids:
+                for j, (dynamic_container, container_local_id) in enumerate(level_additional_dynamic_containers):
+                    if target_guid == container_local_id:
+                        target_dynamic_containers[i] = dynamic_container
+                        repeated_indices.add(j)
+                        break
     targ_lvl['DynamicItemSaveData']['value']['values'] += [container for i, (container, local_id) in
                                                            enumerate(level_additional_dynamic_containers) if
                                                            i not in repeated_indices]
