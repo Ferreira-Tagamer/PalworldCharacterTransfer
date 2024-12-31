@@ -1070,6 +1070,29 @@ target_section_ranges, target_save_type, target_raw_gvas, targ_json_gvas = None,
 selected_source_player, selected_target_player = None, None
 keep_old_guild_id, output_old_save_version = False, False
 TARGET_CNK_DATA_HEADER = None
+
+def sort_treeview_column(treeview, col_index, reverse):
+    """
+    Function to sort data in a Treeview widget.
+    
+    Args:
+        treeview: The Treeview widget whose data will be sorted.
+        col_index: The index of the column to sort by.
+        reverse: Boolean indicating whether to sort in reverse order.
+    """
+    # Extract data from the specified column and associated items
+    data = [(treeview.set(child, col_index), child) for child in treeview.get_children('')]
+    
+    # Sort the data
+    data.sort(reverse=reverse, key=lambda x: x[0])
+    
+    # Rearrange the Treeview items based on sorted order
+    for index, (_, item) in enumerate(data):
+        treeview.move(item, '', index)
+    
+    # Update the column heading to allow toggling between ascending and descending order
+    treeview.heading(col_index, command=lambda: sort_treeview_column(treeview, col_index, not reverse))
+
 source_guild_dict, target_guild_dict = dict(), dict()
 source_section_load_handle, target_section_load_handle = None, None
 
@@ -1099,10 +1122,9 @@ source_player_list = ttk.Treeview(root, columns=(0, 1, 2), show='headings')
 source_player_list.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
 
 # Define the column headings
-source_player_list.heading(0, text='Guild ID')
-source_player_list.heading(1, text='Player ID')
-source_player_list.heading(2, text='NickName')
-
+source_player_list.heading(0, text='Guild ID', command=lambda: sort_treeview_column(source_player_list, 0, False))
+source_player_list.heading(1, text='Player ID', command=lambda: sort_treeview_column(source_player_list, 1, False))
+source_player_list.heading(2, text='NickName', command=lambda: sort_treeview_column(source_player_list, 2, False))
 source_player_list.column(0, width=100)
 source_player_list.column(1, width=100)
 source_player_list.column(2, width=100)
@@ -1121,10 +1143,9 @@ target_player_list = ttk.Treeview(root, columns=(0, 1, 2), show='headings')
 target_player_list.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
 
 # Define the column headings
-target_player_list.heading(0, text='Guild ID')
-target_player_list.heading(1, text='Player ID')
-target_player_list.heading(2, text='NickName')
-
+target_player_list.heading(0, text='Guild ID', command=lambda: sort_treeview_column(target_player_list, 0, False))
+target_player_list.heading(1, text='Player ID', command=lambda: sort_treeview_column(target_player_list, 1, False))
+target_player_list.heading(2, text='NickName', command=lambda: sort_treeview_column(target_player_list, 2, False))
 target_player_list.column(0, width=100)
 target_player_list.column(1, width=100)
 target_player_list.column(2, width=100)
